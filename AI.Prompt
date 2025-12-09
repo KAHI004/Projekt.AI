@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Optimizer</title>
+    <style>
+        :root {
+            --color-primary: #6366f1;
+            --color-primary-hover: #4f46e5;
+            --color-primary-active: #4338ca;
+            --color-secondary: #ec4899;
+            --color-accent: #f59e0b;
+            --color-success: #10b981;
+            --color-warning: #f97316;
+            --color-error: #ef4444;
+            --color-bg: #0f172a;
+            --color-surface: #1e293b;
+            --color-surface-light: #334155;
+            --color-text: #f1f5f9;
+            --color-text-secondary: #cbd5e1;
+            --color-border: #475569;
+            --color-score-low: #ef4444;
+            --color-score-mid: #f97316;
+            --color-score-high: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: var(--color-text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #6366f1, #ec4899, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: var(--color-text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .card:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--color-text);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            font-size: 0.95rem;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            color: var(--color-text);
+            font-size: 0.95rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 150px;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--color-surface-light);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-border);
+        }
+
+        .score-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .score-circle.low {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--color-score-low);
+            border: 2px solid var(--color-score-low);
+        }
+
+        .score-circle.mid {
+            background: rgba(249, 115, 34, 0.2);
+            color: var(--color-score-mid);
+            border: 2px solid var(--color-score-mid);
+        }
+
+        .score-circle.high {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--color-score-high);
+            border: 2px solid var(--color-score-high);
+        }
+
+        .score-info h3 {
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+
+        .score-info p {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .suggestions {
+            margin-top: 20px;
+        }
+
+        .suggestion-item {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--color-primary);
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .suggestion-item strong {
+            color: var(--color-primary);
+        }
+
+        .output-section {
+            margin-top: 25px;
+        }
+
+        .output-label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--color-text);
+        }
+
+        .output-box {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 100px;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .copy-btn.copied {
+            background: var(--color-success);
+        }
+
+        .improvements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .improvement-card {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .improvement-card strong {
+            color: var(--color-success);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--color-text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 8px;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+        }
+
+        .feature-text {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* Hero Section Styles */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+            margin-bottom: 80px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @media (max-width: 968px) {
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                margin-bottom: 60px;
+            }
+        }
+
+        .hero-content {
+            padding-right: 20px;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #6366f1, #ec4899, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .hero-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        .btn-cta {
+            padding: 16px 40px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-cta:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-cta:active {
+            transform: translateY(-2px);
+        }
+
+        .hero-visual {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-box {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.2));
+            border: 2px solid var(--color-border);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .hero-icon {
+            font-size: 5rem;
+        }
+
+        .hero-box p {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        /* Footer Styles */
+        footer {
+            margin-top: 100px;
+            padding: 60px 0 30px 0;
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            color: var(--color-text-secondary);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h3 {
+            color: var(--color-text);
+            font-size: 1rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-section li {
+            margin-bottom: 10px;
+        }
+
+        .footer-section a {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: var(--color-primary);
+        }
+
+        .footer-divider {
+            height: 1px;
+            background: var(--color-border);
+            margin: 40px 0;
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-bottom p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            color: var(--color-primary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .social-links a:hover {
+            background: var(--color-primary);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .free-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">✨ Transform Your AI Prompts</h1>
+                <p class="hero-subtitle">Get better results from AI with optimized, crystal-clear prompts</p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number">10K+</span>
+                        <span class="stat-label">Prompts Optimized</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">8.9/10</span>
+                        <span class="stat-label">Avg. Score Boost</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">24/7</span>
+                        <span class="stat-label">Available</span>
+                    </div>
+                </div>
+                <button class="btn-cta" onclick="document.querySelector('.main-grid').scrollIntoView({behavior: 'smooth'})">Start Optimizing Now →</button>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-box">
+                    <div class="hero-icon">✨</div>
+                    <p>AI Prompt Optimizer</p>
+                </div>
+            </div>
+        </section>
+
+        <header>
+            <h1 style="font-size: 1.8rem; margin-top: 60px;">How It Works</h1>
+            <p class="subtitle">Simple. Fast. Powerful.</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Input Card -->
+            <div class="card">
+                <h2 class="card-title">📝 Din Prompt</h2>
+                <div class="form-group">
+                    <label for="promptInput">Skriv din AI-prompt här:</label>
+                    <textarea id="promptInput" placeholder="Exempel: Skriv en artikel om AI&#10;&#10;Tips: Ju mer detaljer du ger, desto bättre blir optimering!"></textarea>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="optimizePrompt()">⚡ Optimera Prompt</button>
+                    <button class="btn-secondary" onclick="clearInput()">🗑️ Rensa</button>
+                </div>
+            </div>
+
+            <!-- Output Card -->
+            <div class="card">
+                <h2 class="card-title">🎯 Optimerad Prompt</h2>
+                <div id="resultsContainer" class="empty-state">
+                    <div class="empty-state-icon">⬅️</div>
+                    <p>Skriv en prompt och klicka "Optimera" för att se resultatet här</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score & Suggestions -->
+        <div id="scoreSection" style="display: none;">
+            <div class="card">
+                <h2 class="card-title">📊 Analys & Förbättringar</h2>
+                <div id="scoreContent"></div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="feature-list">
+            <div class="feature-item">
+                <span class="feature-icon">🎯</span>
+                <span class="feature-text">Förbättrar klarhet & struktur</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">💡</span>
+                <span class="feature-text">Ger konkreta förslag</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">⭐</span>
+                <span class="feature-text">Score 1-10</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">📋</span>
+                <span class="feature-text">Visar exempel</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>✨ AI Prompt Optimizer</h3>
+                    <p style="font-size: 0.9rem; line-height: 1.6;">Gratis verktyg för att förbättra dina AI-prompts och få bättre resultat från ChatGPT, Midjourney och andra AI-modeller.</p>
+                    <div class="free-badge">100% Gratis Tillgänglig för Alla</div>
+                </div>
+                <div class="footer-section">
+                    <h3>Funktioner</h3>
+                    <ul>
+                        <li><a href="#" onclick="document.querySelector('.main-grid').scrollIntoView({behavior: 'smooth'}); return false;">Prompt Optimizer</a></li>
+                        <li><a href="#" onclick="document.querySelector('#scoreSection').scrollIntoView({behavior: 'smooth'}); return false;">Analys & Score</a></li>
+                        <li><a href="#" onclick="document.querySelector('.feature-list').scrollIntoView({behavior: 'smooth'}); return false;">Alla Verktyg</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Support</h3>
+                    <ul>
+                        <li><a href="mailto:support@promptoptimizer.com">📧 Email Support</a></li>
+                        <li><a href="#">FAQ</a></li>
+                        <li><a href="#">Tips & Tricks</a></li>
+                        <li><a href="#">Dokumentation</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Juridiskt</h3>
+                    <ul>
+                        <li><a href="#">Användarvillkor</a></li>
+                        <li><a href="#">Integritetspolicy</a></li>
+                        <li><a href="#">Cookie-policy</a></li>
+                        <li><a href="#">Kontakt</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="social-links">
+                <a href="#" title="Twitter">𝕏</a>
+                <a href="#" title="GitHub">⚙️</a>
+                <a href="#" title="Discord">💬</a>
+                <a href="#" title="Email">✉️</a>
+            </div>
+
+            <div class="footer-divider"></div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2025 AI Prompt Optimizer. All rights reserved.</p>
+                <p>|</p>
+                <p>Made with ❤️ for the AI Community</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const improvements = {
+            'specificity': {
+                check: (prompt) => !prompt.includes('specifik') && prompt.length < 100,
+                suggestion: '🎯 Var mer specifik: Lägg till detaljer om vad du exakt vill ha',
+                example: 'Istället för: "Skriv en artikel"\nSäg: "Skriv en 500-ords artikel om AI för nybörjare"'
+            },
+            'context': {
+                check: (prompt) => !prompt.includes('kontext') && !prompt.includes('bakgrund'),
+                suggestion: '📚 Lägg till kontext: Berätta varför och för vem',
+                example: 'Lägg till: "Det här är för en tech-blog med målgrupp utvecklare"'
+            },
+            'format': {
+                check: (prompt) => !prompt.match(/format|struktur|layout|lista|tabell|avsnitt/i),
+                suggestion: '📝 Specicifiera format: Säg exakt hur du vill ha svaret',
+                example: 'Säg: "Formatera som ett numbered list med 5 punkter"'
+            },
+            'tone': {
+                check: (prompt) => !prompt.match(/ton|stil|professionell|casual|humoristisk|formell/i),
+                suggestion: '🎭 Ange ton: Beskriv önskad stil eller ton',
+                example: 'Lägg till: "I en professionell men vänlig ton"'
+            },
+            'constraints': {
+                check: (prompt) => !prompt.match(/begräns|max|min|antal|längd|ord|tecken/i),
+                suggestion: '⏱️ Sätt begränsningar: Ange längd, antal punkter etc',
+                example: 'Säg: "Max 200 ord" eller "3 huvud punkter"'
+            },
+            'audience': {
+                check: (prompt) => !prompt.match(/publik|målgrupp|audience|för vem|användare|nivå/i),
+                suggestion: '👥 Ange målgrupp: Vem är detta för?',
+                example: 'Säg: "För högskolestuderande" eller "För alla åldrar"'
+            }
+        };
+
+        function calculateScore(prompt) {
+            let score = 10;
+            let issues = [];
+
+            for (let [key, item] of Object.entries(improvements)) {
+                if (item.check(prompt)) {
+                    score -= 1.5;
+                    issues.push(key);
+                }
+            }
+
+            return Math.max(1, Math.min(10, Math.round(score * 10) / 10));
+        }
+
+        function optimizePrompt() {
+            const input = document.getElementById('promptInput').value.trim();
+            
+            if (!input) {
+                alert('Vänligen skriv en prompt först!');
+                return;
+            }
+
+            const score = calculateScore(input);
+            const optimizedPrompt = generateOptimizedPrompt(input);
+            const suggestions = generateSuggestions(input);
+
+            displayResults(optimizedPrompt, score, suggestions);
+        }
+
+        function generateOptimizedPrompt(original) {
+            let optimized = original;
+
+            // Lägg till struktur
+            if (!original.match(/steg|punkt|avsnitt|format/i)) {
+                optimized += '\n\nFormatera svaret med tydliga avsnitt eller punkter.';
+            }
+
+            // Lägg till kontext om det saknas
+            if (!original.match(/för|användare|publik|mål/i)) {
+                optimized += '\n\nSe till att svaret är tydligt och lätt att förstå för alla.';
+            }
+
+            // Lägg till längd om det saknas
+            if (!original.match(/ord|tecken|längd|max|min/i)) {
+                optimized += '\n\nGe ett uttömmande svar med tillräcklig detalj.';
+            }
+
+            return optimized;
+        }
+
+        function generateSuggestions(prompt) {
+            const suggestions = [];
+
+            for (let [key, item] of Object.entries(improvements)) {
+                if (item.check(prompt)) {
+                    suggestions.push({
+                        title: item.suggestion,
+                        example: item.example
+                    });
+                }
+            }
+
+            return suggestions;
+        }
+
+        function displayResults(optimizedPrompt, score, suggestions) {
+            // Display optimized prompt
+            const resultsContainer = document.getElementById('resultsContainer');
+            const scoreClass = score >= 7 ? 'high' : score >= 5 ? 'mid' : 'low';
+            
+            resultsContainer.innerHTML = `
+                <div class="output-section">
+                    <div class="output-label">Optimerad version:</div>
+                    <div class="output-box" id="optimizedOutput">
+                        ${optimizedPrompt.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                        <button class="copy-btn" onclick="copyToClipboard('optimizedOutput', this)">📋 Kopiera</button>
+                    </div>
+                </div>
+            `;
+
+            // Display score and suggestions
+            const scoreSection = document.getElementById('scoreSection');
+            const scoreContent = document.getElementById('scoreContent');
+            
+            scoreContent.innerHTML = `
+                <div class="score-container">
+                    <div class="score-circle ${scoreClass}">${score}</div>
+                    <div class="score-info">
+                        <h3>${score >= 7 ? '✅ Bra prompt!' : score >= 5 ? '⚠️ Kan förbättras' : '❌ Behöver mycket arbete'}</h3>
+                        <p>${score >= 7 ? 'Din prompt är väl strukturerad!' : score >= 5 ? 'Lägg till mer detaljer för bättre resultat' : 'Lägg till mycket mer information för optimala resultat'}</p>
+                    </div>
+                </div>
+
+                <div class="suggestions">
+                    <h3 style="margin-bottom: 15px; color: var(--color-primary);">💡 Förbättringsförslag:</h3>
+                    ${suggestions.length > 0 ? suggestions.map(s => `
+                        <div class="suggestion-item">
+                            <strong>${s.title}</strong><br>
+                            <span style="color: var(--color-text-secondary); font-size: 0.85rem;">${s.example}</span>
+                        </div>
+                    `).join('') : '<p style="color: var(--color-text-secondary);">Din prompt är redan väl optimerad! 🎉</p>'}
+                </div>
+            `;
+
+            scoreSection.style.display = 'block';
+            scoreSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function copyToClipboard(elementId, button) {
+            const element = document.getElementById(elementId);
+            const text = element.innerText;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.innerText;
+                button.innerText = '✅ Kopierad!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerText = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function clearInput() {
+            document.getElementById('promptInput').value = '';
+            document.getElementById('resultsContainer').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⬅️</div>
+                    <p>Skriv en prompt och klicka "Optimera" för att se resultatet här</p>
+                </div>
+            `;
+            document.getElementById('scoreSection').style.display = 'none';
+        }
+
+        // Allow Enter key to optimize
+        document.getElementById('promptInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                optimizePrompt();
+            }
+        });
+    </script>
+</body>
+</html>
