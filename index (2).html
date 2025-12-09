@@ -609,9 +609,173 @@
             font-weight: 600;
             margin-top: 10px;
         }
+
+        /* History Sidebar */
+        .history-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            overflow-y: auto;
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            padding: 20px;
+        }
+
+        .history-sidebar.active {
+            transform: translateX(0);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .history-header h2 {
+            font-size: 1.2rem;
+            color: var(--color-text);
+            margin: 0;
+        }
+
+        .close-history {
+            background: var(--color-border);
+            border: none;
+            color: var(--color-text);
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-item {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: var(--color-border);
+            border-color: var(--color-primary);
+        }
+
+        .history-item-text {
+            color: var(--color-text);
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .history-item-score {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        .history-item-score.high {
+            color: var(--color-score-high);
+        }
+
+        .history-item-score.mid {
+            color: var(--color-score-mid);
+        }
+
+        .history-item-score.low {
+            color: var(--color-score-low);
+        }
+
+        .empty-history {
+            text-align: center;
+            color: var(--color-text-secondary);
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+
+        .history-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+
+        .history-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+        }
+
+        .clear-history-btn {
+            width: 100%;
+            background: var(--color-error);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .clear-history-btn:hover {
+            background: #d32f2f;
+        }
+
+        @media (max-width: 968px) {
+            .history-sidebar {
+                width: 250px;
+            }
+        }
+
+        body.sidebar-open {
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
+    <!-- History Sidebar -->
+    <div class="history-sidebar" id="historySidebar">
+        <div class="history-header">
+            <h2>📋 Historia</h2>
+            <button class="close-history" onclick="toggleHistory()">✕</button>
+        </div>
+        <ul class="history-list" id="historyList">
+            <div class="empty-history">Ingen historia än. Börja optimera!</div>
+        </ul>
+        <button class="clear-history-btn" onclick="clearAllHistory()">Rensa Historia</button>
+    </div>
+
+    <!-- History Toggle Button -->
+    <button class="history-btn" id="historyBtn" onclick="toggleHistory()" title="Visa historia">📜</button>
+
     <div class="container">
         <!-- Hero Section -->
         <section class="hero">
@@ -813,6 +977,7 @@
             const suggestions = generateSuggestions(input);
 
             displayResults(optimizedPrompt, score, suggestions);
+            saveToHistory(input, optimizedPrompt, score);
         }
 
         function generateOptimizedPrompt(original) {
@@ -849,6 +1014,72 @@
             }
 
             return suggestions;
+        }
+
+        function saveToHistory(originalPrompt, optimizedPrompt, score) {
+            let history = JSON.parse(localStorage.getItem('promptHistory')) || [];
+            
+            const historyItem = {
+                id: Date.now(),
+                original: originalPrompt,
+                optimized: optimizedPrompt,
+                score: score,
+                timestamp: new Date().toLocaleString('sv-SE')
+            };
+            
+            history.unshift(historyItem);
+            // Keep only last 50 items
+            if (history.length > 50) {
+                history = history.slice(0, 50);
+            }
+            
+            localStorage.setItem('promptHistory', JSON.stringify(history));
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            const historyList = document.getElementById('historyList');
+            let history = JSON.parse(localStorage.getItem('promptHistory')) || [];
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="empty-history">Ingen historia än. Börja optimera!</div>';
+                return;
+            }
+            
+            historyList.innerHTML = history.map(item => `
+                <li class="history-item" onclick="loadFromHistory(${item.id})">
+                    <div class="history-item-text">${item.original.substring(0, 60)}${item.original.length > 60 ? '...' : ''}</div>
+                    <div class="history-item-score ${item.score >= 7 ? 'high' : item.score >= 5 ? 'mid' : 'low'}">
+                        📊 Score: ${item.score} • ${item.timestamp}
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function loadFromHistory(id) {
+            let history = JSON.parse(localStorage.getItem('promptHistory')) || [];
+            const item = history.find(h => h.id === id);
+            
+            if (item) {
+                document.getElementById('promptInput').value = item.original;
+                const score = item.score;
+                const suggestions = generateSuggestions(item.original);
+                displayResults(item.optimized, score, suggestions);
+                toggleHistory();
+            }
+        }
+
+        function toggleHistory() {
+            const sidebar = document.getElementById('historySidebar');
+            document.body.classList.toggle('sidebar-open');
+            sidebar.classList.toggle('active');
+        }
+
+        function clearAllHistory() {
+            if (confirm('Är du säker? Detta kan inte ångras!')) {
+                localStorage.removeItem('promptHistory');
+                updateHistoryUI();
+            }
         }
 
         function displayResults(optimizedPrompt, score, suggestions) {
@@ -927,6 +1158,11 @@
                 optimizePrompt();
             }
         });
+
+        // Load history on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateHistoryUI();
+        });
     </script>
 </body>
-</html>
+</html
